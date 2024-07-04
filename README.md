@@ -1,7 +1,7 @@
 # MyKRaft Consensus
 - KRaft is a event based, distributed metadata management system that was written to replace Zookeeper in the ecosystem of Kafka.
 - It uses Raft as an underlying consensus algorithm to do log replication and manage consistency of state.
-- This project aims to mimic the working of the KRaft Protocol used in Apache Kafka.
+- This project aims to mimic the working of the KRaft Protocol used in Apache Kafka, storing all the underlying key-value data in Redis database. 
 
 ### Start the raft nodes using the following commands (three nodes) 
 ```
