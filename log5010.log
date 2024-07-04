@@ -1,0 +1,28 @@
+2024-07-04 20:37:10,108 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:4910
+2024-07-04 20:37:10,108 - [33mPress CTRL+C to quit[0m
+2024-07-04 20:37:19,682 - [1-11(l)] raft accept: 2
+2024-07-04 20:37:20,148 - [1-11(l)] connect to 2
+2024-07-04 20:37:20,149 - [1-11(l)] node 2 already exists
+2024-07-04 20:37:20,149 - [1-11(l)] node 1 already exists
+2024-07-04 20:37:20,149 - [1-11(l)] connect to 2 ok
+2024-07-04 20:37:25,695 - [1-11(l)] raft accept: 3
+2024-07-04 20:37:26,193 - [1-11(l)] connect to 3
+2024-07-04 20:37:26,201 - [1-11(l)] node 3 already exists
+2024-07-04 20:37:26,202 - [1-11(l)] node 1 already exists
+2024-07-04 20:37:26,203 - [1-11(l)] node 2 already exists
+2024-07-04 20:37:26,204 - [1-11(l)] connect to 3 ok
+2024-07-04 20:37:53,854 - Node Port: 5010, Node ID: 1, Node Status: l - Topic 'example_topic3' added successfully
+2024-07-04 20:37:53,855 - 127.0.0.1 - - [04/Jul/2024 20:37:53] "POST /add_topic/example_topic3 HTTP/1.1" 200 -
+2024-07-04 20:38:11,310 - Node Port: 5010, Node ID: 1, Node Status: l - Topic 'example_topic' fetched successfully
+2024-07-04 20:38:11,311 - 127.0.0.1 - - [04/Jul/2024 20:38:11] "GET /get_topic/example_topic HTTP/1.1" 200 -
+2024-07-04 20:38:24,716 - Node Port: 5010, Node ID: 1, Node Status: l - Partition '1' not found
+2024-07-04 20:38:24,717 - 127.0.0.1 - - [04/Jul/2024 20:38:24] "GET /get_partition/1 HTTP/1.1" 200 -
+2024-07-04 20:38:42,447 - Node Port: 5010, Node ID: 1, Node Status: l - Broker 'example_broker' fetched successfully
+2024-07-04 20:38:42,448 - 127.0.0.1 - - [04/Jul/2024 20:38:42] "GET /get_broker/example_broker HTTP/1.1" 200 -
+2024-07-04 20:38:59,164 - Node Port: 5010, Node ID: 1, Node Status: l - Partition '1' added successfully
+2024-07-04 20:38:59,164 - 127.0.0.1 - - [04/Jul/2024 20:38:59] "POST /add_partition/1 HTTP/1.1" 200 -
+2024-07-04 20:39:48,854 - Node Port: 5010, Node ID: 1, Node Status: l - Node metadata fetched successfully
+2024-07-04 20:39:48,855 - 127.0.0.1 - - [04/Jul/2024 20:39:48] "GET /get_node_metadata HTTP/1.1" 200 -
+2024-07-04 20:39:54,458 - Node Port: 5010, Node ID: 1, Node Status: l - Node metadata displayed successfully!
+2024-07-04 20:39:54,459 - 127.0.0.1 - - [04/Jul/2024 20:39:54] "GET /show_node_metadata HTTP/1.1" 200 -

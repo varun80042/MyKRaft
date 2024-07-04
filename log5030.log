@@ -1,0 +1,19 @@
+2024-07-04 20:37:25,700 - [3-0(c)] node 1 already exists
+2024-07-04 20:37:25,701 - [3-0(c)] node 2 already exists
+2024-07-04 20:37:25,701 - [3-0(c)] node 3 already exists
+2024-07-04 20:37:25,702 - [3-0(c)] connect to 1 ok
+2024-07-04 20:37:25,703 - [3-0(c)] connect to 2
+2024-07-04 20:37:25,704 - [3-0(c)] node 2 already exists
+2024-07-04 20:37:25,705 - [3-0(c)] node 1 already exists
+2024-07-04 20:37:25,705 - [3-0(c)] node 3 already exists
+2024-07-04 20:37:25,705 - [3-0(c)] connect to 2 ok
+2024-07-04 20:37:25,714 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:4930
+2024-07-04 20:37:25,714 - [33mPress CTRL+C to quit[0m
+2024-07-04 20:37:26,195 - [3-1(c)] raft accept: 2
+2024-07-04 20:37:26,197 - [3-1(c)] raft accept: 1
+2024-07-04 20:37:26,202 - [3-1(c)] get 1. voters: ['3']
+2024-07-04 20:37:27,096 - [3-2(c)] get 1. voters: ['3']
+2024-07-04 20:37:27,222 - [3-11(c)] on_follower called
+2024-07-04 20:39:28,443 - Node Port: 5030, Node ID: 3, Node Status: f - Broker 'example_broker' fetched successfully
+2024-07-04 20:39:28,444 - 127.0.0.1 - - [04/Jul/2024 20:39:28] "GET /get_broker/example_broker HTTP/1.1" 200 -
