@@ -3,7 +3,7 @@
 - It uses Raft as an underlying consensus algorithm to do log replication and manage consistency of state.
 - This project aims to mimic the working of the KRaft Protocol used in Apache Kafka.
 
-### Start the raft nodes using the following commands (three nodes) - 
+### Start the raft nodes using the following commands (three nodes) 
 ```
 python raft.py -i 1 -a 127.0.0.1:5010
 ```
