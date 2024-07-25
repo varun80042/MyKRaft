@@ -6,12 +6,17 @@ from datetime import datetime
 import logging
 import redis
 
+# from helper.logger import log_message
+# from helper.add_record import add_record
+# from helper.get_record import get_record
+# from helper.delete_record import delete_record
+
 app = Flask(__name__)
 
 node = raft.make_default_node()
 node.start()
 
-node_metadata = {"TopicRecord": {}, "PartitionRecord": {}, "BrokerRecord": {}}
+node_metadata = {"TopicRecord": {}, "PartitionRecord": {}, "BrokerRecord": {}, "ProducerRecord": {}, "RegistrationChangeRecord": {}}
 
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -21,6 +26,15 @@ logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime
 def log_message(message):
     log_entry = f"Node Port: {node.port}, Node ID: {node.nid}, Node Status: {node.state} - {message}"
     logging.info(log_entry)
+
+def add_record(record_type, record_key, record_data):
+    redis_client.hset(record_type, record_key, json.dumps(record_data))
+
+def get_record(record_type, record_key):
+    return redis_client.hget(record_type, record_key)
+
+def delete_record(record_type, record_key):
+    redis_client.hdel(record_type, record_key)
 
 @app.route('/', methods=["GET"])
 def home():
@@ -33,18 +47,11 @@ def home():
 @app.route('/get_node_metadata', methods=["GET"])
 def get_node_metadata():
     try:
-        topic_keys = redis_client.hkeys("TopicRecord")
-        for topic_key in topic_keys:
-            topic_data = redis_client.hget("TopicRecord", topic_key)
-            node_metadata["TopicRecord"][topic_key.decode("utf-8")] = json.loads(topic_data)
-        partition_keys = redis_client.hkeys("PartitionRecord")
-        for partition_key in partition_keys:
-            partition_data = redis_client.hget("PartitionRecord", partition_key)
-            node_metadata["PartitionRecord"][partition_key.decode("utf-8")] = json.loads(partition_data)
-        broker_keys = redis_client.hkeys("BrokerRecord")
-        for broker_key in broker_keys:
-            broker_data = redis_client.hget("BrokerRecord", broker_key)
-            node_metadata["BrokerRecord"][broker_key.decode("utf-8")] = json.loads(broker_data)
+        for record_type in node_metadata.keys():
+            keys = redis_client.hkeys(record_type)
+            for key in keys:
+                data = redis_client.hget(record_type, key)
+                node_metadata[record_type][key.decode("utf-8")] = json.loads(data)
         log_message("Node metadata fetched successfully")
         return jsonify({"message": f"Success! Metadata added to raft node with port {node.port}."})
     except Exception as e:
@@ -55,7 +62,7 @@ def get_node_metadata():
 def show_node_metadata():
     log_message("Node metadata displayed successfully!")
     return jsonify(node_metadata)
-    
+
 @app.route('/add_broker/<broker_name>', methods=["POST"])
 def add_broker(broker_name):
     try:
@@ -75,7 +82,7 @@ def add_broker(broker_name):
                 "epoch": 0,
                 "timestamp": datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
             }
-            redis_client.hset("BrokerRecord", broker_name, json.dumps(broker_data))
+            add_record("BrokerRecord", broker_name, broker_data)
             log_message(f"Broker '{broker_name}' added successfully")
             return jsonify({"message": "Success!"})
         else:
@@ -88,7 +95,7 @@ def add_broker(broker_name):
 @app.route('/get_broker/<broker_name>', methods=["GET"])
 def get_broker(broker_name):
     try:
-        broker_data = redis_client.hget("BrokerRecord", broker_name)
+        broker_data = get_record("BrokerRecord", broker_name)
         if broker_data:
             log_message(f"Broker '{broker_name}' fetched successfully")
             return jsonify(json.loads(broker_data))
@@ -106,7 +113,7 @@ def delete_broker(broker_name):
             log_message(f"Broker '{broker_name}' does not exist")
             return jsonify({"message": f"Failure. Broker '{broker_name}' does not exist!"})
         if node.state == "l":
-            redis_client.hdel("BrokerRecord", broker_name)
+            delete_record("BrokerRecord", broker_name)
             log_message(f"Broker '{broker_name}' deleted successfully")
             return jsonify({"message": "Success. Broker deleted!"})
         else:
@@ -131,7 +138,7 @@ def add_topic(topic_name):
                 "name": topic_name,
                 "timestamp": topic_timestamp
             }
-            redis_client.hset("TopicRecord", topic_name, json.dumps(topic_data))
+            add_record("TopicRecord", topic_name, topic_data)
             log_message(f"Topic '{topic_name}' added successfully")
             return jsonify({"message": "Success!"})
         else:
@@ -144,7 +151,7 @@ def add_topic(topic_name):
 @app.route('/get_topic/<topic_name>', methods=["GET"])
 def get_topic(topic_name):
     try:
-        topic_data = redis_client.hget("TopicRecord", topic_name)
+        topic_data = get_record("TopicRecord", topic_name)
         if topic_data:
             log_message(f"Topic '{topic_name}' fetched successfully")
             return jsonify(json.loads(topic_data))
@@ -162,7 +169,7 @@ def delete_topic(topic_name):
             log_message(f"Topic '{topic_name}' does not exist")
             return jsonify({"message": f"Failure. Topic '{topic_name}' does not exist!"})
         if node.state == "l":
-            redis_client.hdel("TopicRecord", topic_name)
+            delete_record("TopicRecord", topic_name)
             log_message(f"Topic '{topic_name}' deleted successfully")
             return jsonify({"message": "Success. Topic deleted!"})
         else:
@@ -181,7 +188,7 @@ def add_partition(partition_id):
             log_message(f"Partition '{partition_id}' already exists")
             return jsonify({"message": f"Failure. Partition '{partition_id}' already exists!"})
         if node.state == "l":
-            if not redis_client.hvals("TopicRecord"):
+            if not redis_client.hexists("TopicRecord", topic_uuid):
                 log_message(f"Topic with UUID '{topic_uuid}' does not exist")
                 return jsonify({"message": f"Failure. Topic with UUID '{topic_uuid}' does not exist!"})
             else:
@@ -197,7 +204,7 @@ def add_partition(partition_id):
                     "partitionEpoch": 0,
                     "timestamp": partition_timestamp
                 }
-                redis_client.hset("PartitionRecord", partition_id, json.dumps(partition_data))
+                add_record("PartitionRecord", partition_id, partition_data)
                 log_message(f"Partition '{partition_id}' added successfully")
                 return jsonify({"message": "Success!"})
         else:
@@ -210,7 +217,7 @@ def add_partition(partition_id):
 @app.route('/get_partition/<partition_id>', methods=["GET"])
 def get_partition(partition_id):
     try:
-        partition_data = redis_client.hget("PartitionRecord", partition_id)
+        partition_data = get_record("PartitionRecord", partition_id)
         if partition_data:
             log_message(f"Partition '{partition_id}' fetched successfully")
             return jsonify(json.loads(partition_data))
@@ -228,7 +235,7 @@ def delete_partition(partition_id):
             log_message(f"Partition '{partition_id}' does not exist")
             return jsonify({"message": f"Failure. Partition '{partition_id}' does not exist!"})
         if node.state == "l":
-            redis_client.hdel("PartitionRecord", partition_id)
+            delete_record("PartitionRecord", partition_id)
             log_message(f"Partition '{partition_id}' deleted successfully")
             return jsonify({"message": "Success. Partition deleted!"})
         else:
@@ -238,6 +245,118 @@ def delete_partition(partition_id):
         log_message(f"Error deleting partition '{partition_id}': {e}")
         return jsonify({"error": str(e)})
 
-if __name__ == "__main__":
-    app.run(debug=False, port=node.port-100)
-    node.join()
+@app.route('/add_producer/<producer_id>', methods=["POST"])
+def add_producer(producer_id):
+    try:
+        curl_data = request.json
+        if redis_client.hexists("ProducerRecord", producer_id):
+            log_message(f"Producer '{producer_id}' already exists")
+            return jsonify({"message": f"Failure. Producer '{producer_id}' already exists!"})
+        if node.state == "l":
+            producer_timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            producer_data = {
+                "producerId": int(producer_id),
+                "producerEpoch": curl_data.get("producerEpoch"),
+                "lastSequence": curl_data.get("lastSequence"),
+                "coordinatorEpoch": curl_data.get("coordinatorEpoch"),
+                "timestamp": producer_timestamp
+            }
+            add_record("ProducerRecord", producer_id, producer_data)
+            log_message(f"Producer '{producer_id}' added successfully")
+            return jsonify({"message": "Success!"})
+        else:
+            log_message("Failed to add producer - not a leader")
+            return jsonify({"message": "Failure. Not a leader!"})
+    except Exception as e:
+        log_message(f"Error adding producer '{producer_id}': {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/get_producer/<producer_id>', methods=["GET"])
+def get_producer(producer_id):
+    try:
+        producer_data = get_record("ProducerRecord", producer_id)
+        if producer_data:
+            log_message(f"Producer '{producer_id}' fetched successfully")
+            return jsonify(json.loads(producer_data))
+        else:
+            log_message(f"Producer '{producer_id}' not found")
+            return jsonify({"message": f"Failure. Producer '{producer_id}' not found!"})
+    except Exception as e:
+        log_message(f"Error fetching producer '{producer_id}': {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/delete_producer/<producer_id>', methods=["DELETE"])
+def delete_producer(producer_id):
+    try:
+        if not redis_client.hexists("ProducerRecord", producer_id):
+            log_message(f"Producer '{producer_id}' does not exist")
+            return jsonify({"message": f"Failure. Producer '{producer_id}' does not exist!"})
+        if node.state == "l":
+            delete_record("ProducerRecord", producer_id)
+            log_message(f"Producer '{producer_id}' deleted successfully")
+            return jsonify({"message": "Success. Producer deleted!"})
+        else:
+            log_message("Failed to delete producer - not a leader")
+            return jsonify({"message": "Failure. Not a leader!"})
+    except Exception as e:
+        log_message(f"Error deleting producer '{producer_id}': {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/add_registration_change/<change_id>', methods=["POST"])
+def add_registration_change(change_id):
+    try:
+        curl_data = request.json
+        if redis_client.hexists("RegistrationChangeRecord", change_id):
+            log_message(f"Registration change '{change_id}' already exists")
+            return jsonify({"message": f"Failure. Registration change '{change_id}' already exists!"})
+        if node.state == "l":
+            change_timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            change_data = {
+                "changeId": int(change_id),
+                "brokerId": curl_data.get("brokerId"),
+                "changeType": curl_data.get("changeType"),
+                "changeTimestamp": change_timestamp
+            }
+            add_record("RegistrationChangeRecord", change_id, change_data)
+            log_message(f"Registration change '{change_id}' added successfully")
+            return jsonify({"message": "Success!"})
+        else:
+            log_message("Failed to add registration change - not a leader")
+            return jsonify({"message": "Failure. Not a leader!"})
+    except Exception as e:
+        log_message(f"Error adding registration change '{change_id}': {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/get_registration_change/<change_id>', methods=["GET"])
+def get_registration_change(change_id):
+    try:
+        change_data = get_record("RegistrationChangeRecord", change_id)
+        if change_data:
+            log_message(f"Registration change '{change_id}' fetched successfully")
+            return jsonify(json.loads(change_data))
+        else:
+            log_message(f"Registration change '{change_id}' not found")
+            return jsonify({"message": f"Failure. Registration change '{change_id}' not found!"})
+    except Exception as e:
+        log_message(f"Error fetching registration change '{change_id}': {e}")
+        return jsonify({"error": str(e)})
+
+@app.route('/delete_registration_change/<change_id>', methods=["DELETE"])
+def delete_registration_change(change_id):
+    try:
+        if not redis_client.hexists("RegistrationChangeRecord", change_id):
+            log_message(f"Registration change '{change_id}' does not exist")
+            return jsonify({"message": f"Failure. Registration change '{change_id}' does not exist!"})
+        if node.state == "l":
+            delete_record("RegistrationChangeRecord", change_id)
+            log_message(f"Registration change '{change_id}' deleted successfully")
+            return jsonify({"message": "Success. Registration change deleted!"})
+        else:
+            log_message("Failed to delete registration change - not a leader")
+            return jsonify({"message": "Failure. Not a leader!"})
+    except Exception as e:
+        log_message(f"Error deleting registration change '{change_id}': {e}")
+        return jsonify({"error": str(e)})
+
+if __name__ == '__main__':
+    app.run(port=node.port)
