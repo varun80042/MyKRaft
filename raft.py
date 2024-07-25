@@ -13,12 +13,12 @@ import redis
 
 app = Flask(__name__)
 
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+
 node = raft.make_default_node()
 node.start()
 
 node_metadata = {"TopicRecord": {}, "PartitionRecord": {}, "BrokerRecord": {}, "ProducerRecord": {}, "RegistrationChangeRecord": {}}
-
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 log_filename = f'log{node.port}.log'
 logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(message)s')
