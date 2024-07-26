@@ -359,4 +359,5 @@ def delete_registration_change(change_id):
         return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
-    app.run(port=node.port)
+    app.run(debug=False, port=node.port-100)
+    node.join()
